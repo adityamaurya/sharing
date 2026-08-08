@@ -115,7 +115,7 @@ export default function LogFuel() {
         <T variant="caption" color={colors.textMuted}>
           FUEL
         </T>
-        <Row gap={space.sm}>
+        <Row gap={space.sm} wrap>
           {(['cng', 'petrol', 'electric'] as const).map((f) => (
             <Chip key={f} label={f.toUpperCase()} active={fuelType === f} onPress={() => setFuelType(f)} />
           ))}
@@ -123,7 +123,7 @@ export default function LogFuel() {
 
         <Divider />
 
-        <Row gap={space.lg}>
+        <Row gap={space.lg} wrap align="flex-start">
           <Field
             label={fuelType === 'cng' ? 'Kilograms' : fuelType === 'petrol' ? 'Litres' : 'kWh'}
             value={quantity}
@@ -140,7 +140,7 @@ export default function LogFuel() {
           accessibilityState={{ checked: substitute }}
           style={{ minHeight: touch.min, justifyContent: 'center' }}
         >
-          <Row gap={space.md}>
+          <Row gap={space.md} align="flex-start">
             <View
               style={{
                 width: 28,
@@ -155,7 +155,7 @@ export default function LogFuel() {
             >
               {substitute ? <T variant="bodyStrong">✓</T> : null}
             </View>
-            <Stack gap={2}>
+            <Stack gap={2} flex={1}>
               <T variant="bodyStrong">I’m driving a different rickshaw today</T>
               <T variant="caption" color={colors.textMuted}>
                 Half reward · up to {POLICY.fuel.MAX_SUBSTITUTE_LOGS_PER_MONTH} times a month
@@ -167,7 +167,7 @@ export default function LogFuel() {
 
       {/* Tell him what this will pay before he taps, not after. */}
       <Card tone={decision.reward > 0 ? 'primarySoft' : 'sunken'}>
-        <Row justify="space-between">
+        <Row justify="space-between" gap={space.md} wrap>
           <T variant="bodyStrong">
             {decision.reward > 0
               ? `You’ll earn ${formatINR(decision.reward)}`

@@ -88,7 +88,7 @@ export default function Home() {
         accessibilityLabel="Ride now. Share a rickshaw leaving in the next few minutes."
       >
         <Row justify="space-between">
-          <Stack gap={space.xs}>
+          <Stack gap={space.xs} flex={1}>
             <T variant="subtitle">Ride now</T>
             <T variant="body" color={colors.textMuted}>
               2 people waiting · leaves in ~6 min
@@ -103,7 +103,7 @@ export default function Home() {
         accessibilityLabel="Book for later. Tell us when you will arrive and we match you before you get there."
       >
         <Row justify="space-between">
-          <Stack gap={space.xs}>
+          <Stack gap={space.xs} flex={1}>
             <T variant="subtitle">Book for later</T>
             <T variant="body" color={colors.textMuted}>
               On a train? Get matched before you land
@@ -118,7 +118,7 @@ export default function Home() {
         accessibilityLabel="Daily pass. Lock the same seat every day for a week or a month."
       >
         <Row justify="space-between">
-          <Stack gap={space.xs}>
+          <Stack gap={space.xs} flex={1}>
             <T variant="subtitle">Daily pass</T>
             <T variant="body" color={colors.textMuted}>
               Same seat, same time, every day

@@ -146,7 +146,7 @@ export default function SkipRide() {
         <Card tone="sunken">
           <Row gap={space.md} align="flex-start">
             <T variant="subtitle">↻</T>
-            <Stack gap={space.xs}>
+            <Stack gap={space.xs} flex={1}>
               <T variant="bodyStrong">We’ll try to fill your seat first</T>
               <T variant="body" color={colors.textMuted}>
                 Most seats on this route sell on again at this much notice. If yours does,
@@ -161,7 +161,7 @@ export default function SkipRide() {
       <Card tone="sunken">
         <Row gap={space.md} align="flex-start">
           <T variant="subtitle">🛺</T>
-          <Stack gap={space.xs}>
+          <Stack gap={space.xs} flex={1}>
             <T variant="bodyStrong">Your driver still gets paid</T>
             <T variant="body" color={colors.textMuted}>
               Whatever happens with your seat, Sunil is paid in full for tomorrow. You are

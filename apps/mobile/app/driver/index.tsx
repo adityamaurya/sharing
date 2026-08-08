@@ -52,8 +52,8 @@ export default function DriverHome() {
             { time: '6:40 PM', route: 'Dombivli East → Palava Gate 2', seats: 3, fare: rupees(138) },
             { time: '7:30 PM', route: 'Palava Gate 2 → Dombivli East', seats: 3, fare: rupees(150) },
           ].map((t) => (
-            <Row key={t.time} justify="space-between">
-              <Stack gap={2}>
+            <Row key={t.time} justify="space-between" gap={space.md}>
+              <Stack gap={2} flex={1}>
                 <T variant="bodyStrong">{t.time}</T>
                 <T variant="caption" color={colors.textMuted}>
                   {t.route} · {t.seats} seats
@@ -73,8 +73,8 @@ export default function DriverHome() {
       </Card>
 
       <Card tone="sunken">
-        <Row justify="space-between">
-          <Stack gap={2}>
+        <Row justify="space-between" gap={space.md}>
+          <Stack gap={2} flex={1}>
             <T variant="bodyStrong">A rider cancelled tomorrow’s 9:15</T>
             <T variant="caption" color={colors.textMuted}>
               You are paid either way. We are looking for a replacement.

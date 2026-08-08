@@ -65,8 +65,8 @@ export default function RideLater() {
 
         <Stack gap={space.md}>
           {DEMO_ARRIVALS.map((p) => (
-            <Row key={p.name} justify="space-between">
-              <Stack gap={2}>
+            <Row key={p.name} justify="space-between" gap={space.md}>
+              <Stack gap={2} flex={1}>
                 <T variant="bodyStrong">{p.name}</T>
                 <T variant="caption" color={colors.textMuted}>
                   {p.train}

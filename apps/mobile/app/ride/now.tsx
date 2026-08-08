@@ -94,8 +94,8 @@ export default function RideNow() {
 
         <Stack gap={space.md}>
           {DEMO_POOL.coRiders.map((r) => (
-            <Row key={r.name} justify="space-between">
-              <Stack gap={2}>
+            <Row key={r.name} justify="space-between" gap={space.md}>
+              <Stack gap={2} flex={1}>
                 <T variant="bodyStrong">{r.name}</T>
                 <T variant="caption" color={colors.textMuted}>
                   {r.sharedBefore >= 3
@@ -115,8 +115,8 @@ export default function RideNow() {
             </Row>
           ))}
 
-          <Row justify="space-between">
-            <Stack gap={2}>
+          <Row justify="space-between" gap={space.md}>
+            <Stack gap={2} flex={1}>
               <T variant="bodyStrong" color={joined ? colors.text : colors.textFaint}>
                 {joined ? 'You' : 'Empty seat'}
               </T>

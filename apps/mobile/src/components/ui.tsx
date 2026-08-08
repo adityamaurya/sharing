@@ -166,23 +166,51 @@ export function Row({
   gap = space.md,
   align = 'center',
   justify = 'flex-start',
+  wrap,
   style,
 }: {
   children: ReactNode;
   gap?: number;
   align?: ViewStyle['alignItems'];
   justify?: ViewStyle['justifyContent'];
+  /** Let children drop to a second line rather than overflow a narrow screen. */
+  wrap?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
   return (
-    <View style={[{ flexDirection: 'row', gap, alignItems: align, justifyContent: justify }, style]}>
+    <View
+      style={[
+        {
+          flexDirection: 'row',
+          gap,
+          alignItems: align,
+          justifyContent: justify,
+          flexWrap: wrap ? 'wrap' : 'nowrap',
+        },
+        style,
+      ]}
+    >
       {children}
     </View>
   );
 }
 
-export function Stack({ children, gap = space.md }: { children: ReactNode; gap?: number }) {
-  return <View style={{ gap }}>{children}</View>;
+/**
+ * `flex` matters more than it looks. A text column inside a Row will happily
+ * run past the edge of a 360dp phone unless it is told it may shrink — the
+ * fare or the badge next to it then gets clipped, which on this app means a
+ * price somebody cannot read. Pass `flex={1}` to the side that should give way.
+ */
+export function Stack({
+  children,
+  gap = space.md,
+  flex,
+}: {
+  children: ReactNode;
+  gap?: number;
+  flex?: number;
+}) {
+  return <View style={[{ gap }, flex !== undefined && { flex, minWidth: 0 }]}>{children}</View>;
 }
 
 export function Divider() {
