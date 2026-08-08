@@ -1,4 +1,10 @@
-import { quotePass, quoteSeat, rupees, type Pass } from '@sharing/core';
+import {
+  quotePass,
+  quoteSeat,
+  rupees,
+  type Pass,
+  type StationPresence,
+} from '@sharing/core';
 
 /**
  * Demo data for the real Palava ↔ Dombivli corridor.
@@ -148,3 +154,31 @@ export function minutesToClock(minute: number): string {
   const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
   return `${h12}:${String(m).padStart(2, '0')} ${suffix}`;
 }
+
+// ── Fuel campaign ───────────────────────────────────────────────────────────
+//
+// A driver twenty-two minutes into the Dombivli MIDC queue: long enough that the
+// reward is armed, and exactly the moment the campaign is designed around.
+
+export const DEMO_STATION_PRESENCE: StationPresence = {
+  stationId: 'mgl-dombivli-midc',
+  stationName: 'Mahanagar Gas, Dombivli MIDC',
+  enteredAt: Date.now() - 22 * 60_000,
+  lastSeenAt: Date.now(),
+  exitedAt: null,
+  maxSpeedKmphInside: 3,
+  onShift: true,
+};
+
+/** Completed dwells at this pump in the last two hours, in seconds. */
+export const DEMO_RECENT_DWELLS: readonly number[] = [
+  45, // somebody who only drove through — filtered out
+  1_020,
+  1_260,
+  1_440,
+  1_680,
+  1_920,
+];
+
+export const DEMO_FUEL_STREAK = 3;
+export const DEMO_FUEL_LOGS_THIS_WEEK = 1;

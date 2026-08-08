@@ -23,5 +23,6 @@ export * from './fairness/resolve.js';
 
 export * from './matching/score.js';
 
+export * from './fuel/campaign.js';
 export * from './fuel/emissions.js';
 export * from './fuel/guardrails.js';

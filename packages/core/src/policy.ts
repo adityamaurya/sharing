@@ -149,8 +149,36 @@ export const POLICY = {
     MIN_HOURS_BETWEEN_LOGS: 6,
     /** Substitute-vehicle declarations allowed per calendar month. */
     MAX_SUBSTITUTE_LOGS_PER_MONTH: 3,
-    /** Dwell inside a fuel-station geofence before we prompt at all. */
+    /** Dwell inside a fuel-station geofence before a log can earn anything. */
     GEOFENCE_DWELL_SECONDS: 120,
+
+    /**
+     * Campaign timing, set from what a CNG queue actually looks like.
+     *
+     * Reported waits in Mumbai are 15–30 minutes on a normal morning and two to
+     * four hours during a supply squeeze (see docs/04-fuel-data-program.md for
+     * sources). Both numbers point the same way: five minutes inside the fence
+     * means the driver is *in the queue*, not finished with it.
+     *
+     * So we arm at five minutes and ask on the way out. Arming mid-queue reaches
+     * a driver who is stationary, bored and already holding their phone; asking
+     * on exit reaches them when they can actually answer what they filled.
+     * Asking at minute five would be asking a question they cannot yet answer.
+     */
+    DWELL_TO_ARM_SECONDS: 300,
+    /**
+     * Below this, they drove through — a pump on the route home, a wrong turn,
+     * traffic at the forecourt. No prompt, because a prompt for something you
+     * did not do is how an app teaches you to ignore it.
+     */
+    PASS_THROUGH_MAX_DWELL_SECONDS: 90,
+    /** Above this speed inside the fence they are moving, not queueing. */
+    QUEUE_MAX_SPEED_KMPH: 8,
+    /** How long after leaving the pump the ask stays open. */
+    ASK_WINDOW_MINUTES: 45,
+    /** Consecutive rewarded logs that earn the streak top-up. */
+    STREAK_LENGTH_FOR_BONUS: 4,
+    STREAK_BONUS_RUPEES: 10,
     /** Plausible fill quantities for a three-wheeler. Outside → no reward. */
     CNG_MIN_KG: 1.5,
     CNG_MAX_KG: 9.0,

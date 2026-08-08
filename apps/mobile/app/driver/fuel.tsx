@@ -2,10 +2,22 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
-import { Button, Card, Divider, Pill, Row, Screen, Stack, T } from '@/components/ui';
+import { Icon } from '@/components/icon';
+import { Button, Card, Divider, Money, Pill, Row, Screen, Stack, T } from '@/components/ui';
+import {
+  DEMO_FUEL_LOGS_THIS_WEEK,
+  DEMO_FUEL_STREAK,
+  DEMO_RECENT_DWELLS,
+  DEMO_SPOT_QUOTE,
+  DEMO_STATION_PRESENCE,
+} from '@/data/demo';
 import { colors, radius, space, touch, type } from '@/theme/tokens';
 import {
   POLICY,
+  add,
+  buildRewardOffer,
+  estimateQueueMinutes,
+  evaluateCampaign,
   evaluateFuelLog,
   formatINR,
   rupees,
@@ -13,12 +25,25 @@ import {
 } from '@sharing/core';
 
 /**
- * Fuel logging.
+ * "Did you fill gas?"
  *
- * Triggered by a geofence: the driver dwelt two minutes inside a mapped fuel
- * station while on shift. He confirms what he actually bought and photographs
- * the plate; the plate OCR is what makes "I'm driving my friend's rickshaw
- * today" an honest declaration instead of a loophole.
+ * The screen the campaign exists for. It opens when a driver leaves a CNG
+ * station having actually stopped there — see `fuel/campaign.ts` for why we arm
+ * at five minutes inside the fence and ask on the way out rather than doing both
+ * at once.
+ *
+ * Three things about the layout, all of them about a driver holding a phone in
+ * one hand next to an idling engine:
+ *
+ *  - The money is the first thing on the screen, at display size, before any
+ *    input. A driver deciding whether this is worth their attention should not
+ *    have to scroll to find out what it pays.
+ *  - The live queue estimate sits above the form, not below it. It is the part
+ *    that costs the driver nothing and is worth something, and putting it first
+ *    makes the exchange visible: here is what we know, now tell us what you
+ *    filled.
+ *  - The form is two numbers. Fuel type is pre-selected from the vehicle on file.
+ *    Anything longer than 25 seconds and drivers stop doing it by week three.
  *
  * The reward is platform credit, never cash. Cash-out is how these programmes
  * get farmed, and credit against platform fees is worth real money to a driver
@@ -33,43 +58,88 @@ export default function LogFuel() {
   const [substitute, setSubstitute] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  const now = Date.now();
+
+  // Where the driver is in the campaign, and what this log is worth. Both come
+  // from core, so the banner on the driver home screen and this screen cannot
+  // disagree about whether the reward is live.
+  const campaign = useMemo(() => evaluateCampaign(DEMO_STATION_PRESENCE, now), [now]);
+  const queue = useMemo(() => estimateQueueMinutes(DEMO_RECENT_DWELLS), []);
+
+  const offer = useMemo(
+    () =>
+      buildRewardOffer({
+        consecutiveRewardedLogs: DEMO_FUEL_STREAK,
+        rewardedLogsThisWeek: DEMO_FUEL_LOGS_THIS_WEEK,
+        platformFeePerRide: DEMO_SPOT_QUOTE.platformFee,
+      }),
+    [],
+  );
+
   // The same guardrails the server runs. Evaluating locally lets us tell the
-  // driver *before* he submits whether this will pay — nobody likes finding out
+  // driver *before* submitting whether this will pay — nobody likes finding out
   // afterwards that their effort earned nothing.
   const decision = useMemo(
     () =>
       evaluateFuelLog(
         {
           driverId: 'driver_demo',
-          stationId: 'mgl-dombivli-01',
+          stationId: campaign.stationId,
           fuelType,
           quantity: Number(quantity) || 0,
           amountPaid: rupees(Number(amount) || 0),
-          submittedAt: Date.now(),
+          submittedAt: now,
           ocrPlate: substitute ? 'MH05ZZ0000' : 'MH 05 AB 1234',
           registeredPlate: 'MH05AB1234',
           substituteVehicleDeclared: substitute,
-          dwellSeconds: 184,
+          dwellSeconds: campaign.dwellSeconds,
           onShift: true,
           tripsSinceLastLog: 4,
         },
         { rewardedLogTimestamps: [], substituteLogTimestampsThisMonth: [] },
         rupees(80),
       ),
-    [fuelType, quantity, amount, substitute],
+    [campaign.stationId, campaign.dwellSeconds, fuelType, quantity, amount, substitute, now],
   );
+
+  // What actually lands: the guardrail decision, plus the streak top-up when the
+  // log qualifies at all.
+  const payout =
+    decision.reward > 0 ? add(decision.reward, offer.streakBonus) : decision.reward;
 
   if (submitted) {
     return (
       <Screen footer={<Button label="Done" onPress={() => router.back()} />}>
         <Card tone="primarySoft">
-          <Pill tone="go" icon="✓">
-            Logged
-          </Pill>
-          <T variant="display">{formatINR(decision.reward)} credited</T>
+          <Row gap={space.sm}>
+            <Icon name="seat" size="md" color={colors.success} />
+            <T variant="caption" color={colors.success}>
+              CREDITED
+            </T>
+          </Row>
+          <T variant="display">{formatINR(payout)}</T>
           <T variant="body" color={colors.textMuted}>
             {decision.reason}
           </T>
+
+          {offer.streakBonus > 0 ? (
+            <>
+              <Divider />
+              <Row gap={space.md}>
+                <Icon name="streak" size="md" color={colors.warning} />
+                <Stack gap={2} flex={1}>
+                  <T variant="bodyStrong">
+                    {POLICY.fuel.STREAK_LENGTH_FOR_BONUS} in a row — {formatINR(offer.streakBonus)}{' '}
+                    extra
+                  </T>
+                  <T variant="caption" color={colors.textMuted}>
+                    Keep going and the next four earn it again.
+                  </T>
+                </Stack>
+              </Row>
+            </>
+          ) : null}
+
           <Divider />
           <T variant="body" color={colors.textMuted}>
             Credit comes off your platform fees, so it lands in your pocket as fewer rupees
@@ -85,15 +155,11 @@ export default function LogFuel() {
       footer={
         <Stack gap={space.sm}>
           <Button
-            label={
-              decision.reward > 0
-                ? `Submit · earn ${formatINR(decision.reward)}`
-                : 'Submit anyway'
-            }
+            label={payout > 0 ? `Submit · earn ${formatINR(payout)}` : 'Submit anyway'}
             onPress={() => setSubmitted(true)}
             hint={
-              decision.reward > 0
-                ? undefined
+              payout > 0
+                ? offer.effortLine
                 : 'This one will not earn a reward, but the data still helps'
             }
           />
@@ -101,16 +167,83 @@ export default function LogFuel() {
         </Stack>
       }
     >
-      <Stack gap={space.xs}>
-        <T variant="caption" color={colors.textMuted}>
-          DETECTED AT
-        </T>
-        <T variant="title">Mahanagar Gas, Dombivli East</T>
-        <T variant="body" color={colors.textMuted}>
-          You have been here 3 minutes. What did you fill?
-        </T>
-      </Stack>
+      {/* ── The question, and what answering it pays ──────────────────────────
+          Money first. A driver should not have to read a form to find the offer. */}
+      <Card tone="primarySoft">
+        <Row justify="space-between" gap={space.md} wrap>
+          <Stack gap={2} flex={1}>
+            <T variant="caption" color={colors.textMuted}>
+              {campaign.stationName.toUpperCase()}
+            </T>
+            <T variant="display">Did you fill gas?</T>
+          </Stack>
+          <Money>{formatINR(offer.total)}</Money>
+        </Row>
 
+        <T variant="body" color={colors.textMuted}>
+          You were here {Math.round(campaign.dwellSeconds / 60)} minutes. Tell us what you filled
+          and the credit lands straight away.
+        </T>
+
+        <Divider />
+
+        <Row gap={space.md} align="flex-start">
+          <Icon name="wallet" size="md" color={colors.text} />
+          <Stack gap={2} flex={1}>
+            <T variant="bodyStrong">{offer.worthLine}</T>
+            <T variant="caption" color={colors.textMuted}>
+              {offer.effortLine}
+            </T>
+          </Stack>
+        </Row>
+
+        {/* Streak, shown as progress toward a bonus — never as something you are
+            about to lose. Loss-framing converts better and breeds exactly the
+            resentment you cannot afford among drivers who talk all morning. */}
+        <Row gap={space.md} align="flex-start">
+          <Icon name="streak" size="md" color={offer.streakBonus > 0 ? colors.warning : colors.textFaint} />
+          <Stack gap={2} flex={1}>
+            <T variant="bodyStrong">
+              {offer.streakBonus > 0
+                ? `${POLICY.fuel.STREAK_LENGTH_FOR_BONUS} in a row — ${formatINR(offer.streakBonus)} extra on this one`
+                : `${offer.logsToBonus} more in a row for +${formatINR(rupees(POLICY.fuel.STREAK_BONUS_RUPEES))}`}
+            </T>
+            <Row gap={space.xs}>
+              {Array.from({ length: POLICY.fuel.STREAK_LENGTH_FOR_BONUS }, (_, i) => (
+                <View
+                  key={i}
+                  style={{
+                    width: 26,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: i <= DEMO_FUEL_STREAK ? colors.warning : colors.border,
+                  }}
+                />
+              ))}
+            </Row>
+          </Stack>
+        </Row>
+      </Card>
+
+      {/* ── What we give back ────────────────────────────────────────────────
+          The queue estimate is built from other drivers' dwell times — a
+          by-product of this very campaign. Showing it here is the whole reason a
+          driver opens the app voluntarily instead of dismissing the prompt. */}
+      <Card tone="sunken">
+        <Row gap={space.md} align="flex-start">
+          <Icon name="waiting" size="md" color={colors.text} />
+          <Stack gap={2} flex={1}>
+            <T variant="bodyStrong">
+              {queue.minutes === null ? 'Queue length unknown' : `Queue here: about ${queue.minutes} min`}
+            </T>
+            <T variant="caption" color={colors.textMuted}>
+              {queue.message}
+            </T>
+          </Stack>
+        </Row>
+      </Card>
+
+      {/* ── Two numbers ─────────────────────────────────────────────────────── */}
       <Card>
         <T variant="caption" color={colors.textMuted}>
           FUEL
@@ -153,7 +286,7 @@ export default function LogFuel() {
                 justifyContent: 'center',
               }}
             >
-              {substitute ? <T variant="bodyStrong">✓</T> : null}
+              {substitute ? <Icon name="check" size="sm" color={colors.text} /> : null}
             </View>
             <Stack gap={2} flex={1}>
               <T variant="bodyStrong">I’m driving a different rickshaw today</T>
@@ -166,33 +299,38 @@ export default function LogFuel() {
       </Card>
 
       {/* Tell him what this will pay before he taps, not after. */}
-      <Card tone={decision.reward > 0 ? 'primarySoft' : 'sunken'}>
+      <Card tone={payout > 0 ? 'primarySoft' : 'sunken'}>
         <Row justify="space-between" gap={space.md} wrap>
           <T variant="bodyStrong">
-            {decision.reward > 0
-              ? `You’ll earn ${formatINR(decision.reward)}`
+            {payout > 0
+              ? `You’ll earn ${formatINR(payout)}`
               : decision.heldForReview
                 ? 'Held for review'
                 : 'No reward for this one'}
           </T>
           <Pill
-            tone={decision.reward > 0 ? 'go' : decision.heldForReview ? 'warn' : 'neutral'}
-            icon={decision.reward > 0 ? '₹' : decision.heldForReview ? '⏳' : '•'}
+            tone={payout > 0 ? 'go' : decision.heldForReview ? 'warn' : 'neutral'}
+            icon={payout > 0 ? '₹' : decision.heldForReview ? '⏳' : '•'}
           >
-            {decision.reward > 0 ? 'Eligible' : decision.heldForReview ? 'Checking' : 'Unpaid'}
+            {payout > 0 ? 'Eligible' : decision.heldForReview ? 'Checking' : 'Unpaid'}
           </Pill>
         </Row>
         <T variant="body" color={colors.textMuted}>
           {decision.reason}
+        </T>
+        <T variant="caption" color={colors.textMuted}>
+          {offer.logsLeftThisWeek > 0
+            ? `${offer.logsLeftThisWeek} paid log${offer.logsLeftThisWeek === 1 ? '' : 's'} left this week.`
+            : 'You have used both paid logs this week. Logging still helps, it just does not pay.'}
         </T>
       </Card>
 
       <Card tone="sunken">
         <T variant="bodyStrong">Why we ask</T>
         <T variant="body" color={colors.textMuted}>
-          Live fuel prices help every driver on the app know where gas is cheapest today, and
-          it lets us show riders how much pollution sharing actually saves. Two logs a week
-          earn a reward — after that you can still log, it just doesn’t pay.
+          Your fills are what tell every other driver how long this queue is and where gas is
+          cheapest today — the number at the top of this screen came from drivers who answered
+          before you. It also lets us show riders how much pollution sharing actually saves.
         </T>
       </Card>
     </Screen>

@@ -19,6 +19,12 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="index" options={{ title: 'Sharing', headerLargeTitle: true }} />
+        {/* Full-screen and chrome-free: the walkthrough supplies its own Skip,
+            and a back arrow beside it would just be a second way to say no. */}
+        <Stack.Screen
+          name="welcome"
+          options={{ headerShown: false, presentation: 'modal', animation: 'fade' }}
+        />
         <Stack.Screen name="ride/now" options={{ title: 'Ride now' }} />
         <Stack.Screen name="ride/later" options={{ title: 'Book for later' }} />
         <Stack.Screen name="pass/index" options={{ title: 'Your pass' }} />

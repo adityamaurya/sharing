@@ -12,6 +12,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import { Icon, type IconName } from '@/components/icon';
 import { colors, elevation, radius, space, touch, type } from '@/theme/tokens';
 
 /**
@@ -217,6 +218,64 @@ export function Divider() {
   return <View style={s.divider} />;
 }
 
+/**
+ * One tappable line: icon, label, a supporting line, and whatever the number is.
+ *
+ * The home screen used to stack a `Card` per choice, which gave three shadowed
+ * boxes competing with the one thing that actually matters — the next ride. A
+ * flat row list makes the hierarchy honest: the hero is loud, the choices are
+ * quiet and equal, and the whole screen fits above the fold on a small phone.
+ *
+ * Still 56dp tall and still one tap. Simplifying the look is not licence to
+ * shrink the target.
+ */
+export function ActionRow({
+  icon,
+  title,
+  meta,
+  trailing,
+  onPress,
+  accessibilityLabel,
+}: {
+  icon: IconName;
+  title: string;
+  meta?: string;
+  /** A fare, a pill, anything short. Sits left of the chevron. */
+  trailing?: ReactNode;
+  onPress: () => void;
+  accessibilityLabel?: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? [title, meta].filter(Boolean).join('. ')}
+      style={({ pressed }) => [s.actionRow, pressed && { backgroundColor: colors.surfaceSunken }]}
+    >
+      <View style={s.actionIcon}>
+        <Icon name={icon} size="md" color={colors.text} />
+      </View>
+
+      <Stack gap={1} flex={1}>
+        <T variant="bodyStrong">{title}</T>
+        {meta ? (
+          <T variant="caption" color={colors.textMuted}>
+            {meta}
+          </T>
+        ) : null}
+      </Stack>
+
+      {trailing}
+      <Icon name="chevron" size="sm" color={colors.textFaint} />
+    </Pressable>
+  );
+}
+
+/** A hairline group wrapper for a run of ActionRows. */
+export function RowGroup({ children }: { children: ReactNode }) {
+  return <View style={s.rowGroup}>{children}</View>;
+}
+
 // ── Status ──────────────────────────────────────────────────────────────────
 
 export type StatusTone = 'go' | 'warn' | 'stop' | 'info' | 'neutral';
@@ -246,8 +305,22 @@ export function Pill({ tone, icon, children }: { tone: StatusTone; icon: string;
   );
 }
 
-/** Grace days as filled/empty dots, plus the count in words for screen readers. */
-export function GraceDots({ total, used }: { total: number; used: number }) {
+/**
+ * Grace days as filled/empty dots, plus the count in words for screen readers.
+ *
+ * `compact` drops the trailing words for use inside a tight row. The
+ * accessibilityLabel keeps them either way — the dots are decoration to a
+ * screen reader, and "three of four left" is the actual content.
+ */
+export function GraceDots({
+  total,
+  used,
+  compact,
+}: {
+  total: number;
+  used: number;
+  compact?: boolean;
+}) {
   const remaining = Math.max(0, total - used);
   return (
     <Row gap={space.sm}>
@@ -259,9 +332,11 @@ export function GraceDots({ total, used }: { total: number; used: number }) {
         {'●'.repeat(remaining)}
         <Text style={{ color: colors.border }}>{'○'.repeat(used)}</Text>
       </T>
-      <T variant="caption" color={colors.textMuted}>
-        {remaining} of {total} left
-      </T>
+      {compact ? null : (
+        <T variant="caption" color={colors.textMuted}>
+          {remaining} of {total} left
+        </T>
+      )}
     </Row>
   );
 }
@@ -340,6 +415,28 @@ const s = StyleSheet.create({
     ...elevation.card,
   },
   divider: { height: 1, backgroundColor: colors.border },
+  rowGroup: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    ...elevation.card,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    minHeight: touch.comfortable + 8,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+  },
+  actionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pill: {
     paddingHorizontal: space.md,
     paddingVertical: 6,

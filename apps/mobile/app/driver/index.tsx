@@ -1,8 +1,24 @@
 import { useRouter } from 'expo-router';
+import { useMemo } from 'react';
 
+import { Icon } from '@/components/icon';
 import { Button, Card, Divider, Money, Pill, Row, Screen, Stack, T } from '@/components/ui';
+import {
+  DEMO_FUEL_LOGS_THIS_WEEK,
+  DEMO_FUEL_STREAK,
+  DEMO_RECENT_DWELLS,
+  DEMO_SPOT_QUOTE,
+  DEMO_STATION_PRESENCE,
+} from '@/data/demo';
 import { colors, space } from '@/theme/tokens';
-import { driverGuaranteedEarnings, formatINR, rupees } from '@sharing/core';
+import {
+  buildRewardOffer,
+  driverGuaranteedEarnings,
+  estimateQueueMinutes,
+  evaluateCampaign,
+  formatINR,
+  rupees,
+} from '@sharing/core';
 
 /**
  * Driver home.
@@ -20,10 +36,75 @@ export default function DriverHome() {
 
   const guaranteed = driverGuaranteedEarnings(rupees(150), 'monthly', 8);
 
+  // The fuel campaign, mid-queue. `evaluateCampaign` decides whether anything
+  // shows at all — a driver who merely drove past a pump gets nothing here, which
+  // is the difference between a useful prompt and one that trains people to
+  // ignore the app.
+  const campaign = useMemo(() => evaluateCampaign(DEMO_STATION_PRESENCE, Date.now()), []);
+  const queue = useMemo(() => estimateQueueMinutes(DEMO_RECENT_DWELLS), []);
+  const offer = useMemo(
+    () =>
+      buildRewardOffer({
+        consecutiveRewardedLogs: DEMO_FUEL_STREAK,
+        rewardedLogsThisWeek: DEMO_FUEL_LOGS_THIS_WEEK,
+        platformFeePerRide: DEMO_SPOT_QUOTE.platformFee,
+      }),
+    [],
+  );
+
   return (
     <Screen
       footer={<Button label="Start today's shift" onPress={() => {}} />}
     >
+      {/* ── In the CNG queue ────────────────────────────────────────────────
+          Shown only while the campaign is armed: five minutes-plus inside a
+          station geofence at queue speed. It leads with the queue length rather
+          than the reward, because that is the thing the driver is sitting there
+          wondering about, and offering it first is what makes the ₹20 feel like
+          a trade instead of a survey. */}
+      {campaign.stage === 'armed' ? (
+        <Card tone="primarySoft">
+          <Row justify="space-between" gap={space.md} wrap>
+            <Row gap={space.sm} style={{ flex: 1 }}>
+              <Icon name="fuel" size="md" color={colors.text} />
+              <T variant="caption" color={colors.textMuted}>
+                IN THE QUEUE · {campaign.stationName.toUpperCase()}
+              </T>
+            </Row>
+            <Pill tone="warn" icon="⏳">
+              {`${campaign.queueMinutesSoFar} min so far`}
+            </Pill>
+          </Row>
+
+          <T variant="title">
+            {queue.minutes === null
+              ? 'Queue length unknown today'
+              : `Others here are taking about ${queue.minutes} min`}
+          </T>
+          <T variant="body" color={colors.textMuted}>
+            {queue.message}
+          </T>
+
+          <Divider />
+
+          <Row justify="space-between" gap={space.md} wrap>
+            <Stack gap={2} flex={1}>
+              <T variant="bodyStrong">{offer.headline} when you are done</T>
+              <T variant="caption" color={colors.textMuted}>
+                {offer.worthLine} {offer.effortLine}
+              </T>
+            </Stack>
+            <Money>{formatINR(offer.total)}</Money>
+          </Row>
+
+          <Button
+            label="Tell us what you filled"
+            onPress={() => router.push('/driver/fuel')}
+            hint={`${formatINR(offer.total)} credit · held for you`}
+          />
+        </Card>
+      ) : null}
+
       <Card tone="primarySoft">
         <T variant="caption" color={colors.textMuted}>
           GUARANTEED THIS MONTH
