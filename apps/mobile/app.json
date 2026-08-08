@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Sharing",
+    "slug": "sharing",
+    "scheme": "sharing",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "primaryColor": "#FFC531",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#141210"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "bundleIdentifier": "in.sharing.app",
+      "supportsTablet": false,
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Sharing uses your location only to find the pickup point nearest to you and to confirm you reached your rickshaw. It is never shared with other passengers.",
+        "NSCameraUsageDescription": "Used to scan your boarding code and, for drivers, to photograph a number plate when logging fuel.",
+        "CFBundleAllowMixedLocalizations": true
+      }
+    },
+    "android": {
+      "package": "in.sharing.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "VIBRATE"
+      ],
+      "blockedPermissions": ["ACCESS_BACKGROUND_LOCATION"],
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": ["expo-router", "expo-localization"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_AFTER_EAS_INIT"
+      }
+    }
+  }
+}

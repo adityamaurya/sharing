@@ -1,0 +1,23 @@
+{
+  "name": "sharing",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sharing \u2014 rickshaw pooling for India. Three people, one rickshaw, one fixed fare.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "mobile": "npm run start --workspace @sharing/mobile",
+    "verify": "npm run typecheck && npm run test"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}
