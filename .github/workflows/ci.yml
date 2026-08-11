@@ -37,6 +37,18 @@ jobs:
       - name: Tests
         run: npm run test
 
+      # Bundle for Android here, in the fast job, rather than discovering a
+      # resolution failure six minutes into Gradle.
+      #
+      # This exists because of a real one: expo-router's Android stack toolbar
+      # imports `@expo/ui/jetpack-compose` from a `native.android.js` file, so a
+      # missing dependency is invisible to typecheck, to the tests, and to a web
+      # export — every check we had — and only surfaces when Metro resolves the
+      # Android platform. Forty seconds here saves the whole APK job.
+      - name: Bundle for Android
+        working-directory: apps/mobile
+        run: npx expo export --platform android --output-dir "$RUNNER_TEMP/android-bundle"
+
   apk:
     name: Debug APK
     needs: verify
