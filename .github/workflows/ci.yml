@@ -95,7 +95,16 @@ jobs:
         # sideload and unsuitable for the Play Store, which is exactly right for
         # a test build. Store uploads need a real keystore — see
         # docs/08-launch-playbook.md.
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        #
+        # arm64-v8a only. The default builds four ABIs, and since the new
+        # architecture compiles React Native's C++ from source that is four times
+        # the work — 24 minutes, for a 49 MB APK whose x86 slices no phone will
+        # ever load. Every Android handset sold since roughly 2017 is arm64,
+        # which is comfortably the whole target market here.
+        #
+        # The x86 slices are only needed for an Android emulator on an Intel Mac
+        # or PC. Add them back if someone needs to run this on one.
+        run: ./gradlew assembleRelease --no-daemon --stacktrace -PreactNativeArchitectures=arm64-v8a
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g
 
