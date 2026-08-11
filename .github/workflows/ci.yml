@@ -1,0 +1,96 @@
+name: CI
+
+# Two jobs, and the split is deliberate. `verify` is fast and gates everything;
+# `apk` is slow (a cold Gradle build is several minutes) and only runs once the
+# code is known good, so a typo never costs ten minutes of runner time.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # A second push supersedes the first — no point finishing a build for a commit
+  # nobody is waiting on any more.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm run test
+
+  apk:
+    name: Debug APK
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # RN 0.86's Gradle plugin wants JDK 17. The runner defaults to a newer JDK,
+      # which fails deep inside AGP with an unhelpful message.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install
+        run: npm ci
+
+      # The repo has no android/ directory — this is a managed Expo project, and
+      # the native project is generated rather than checked in. Regenerating it
+      # every build is what keeps app.json the single source of truth for the
+      # package name, permissions and icons.
+      - name: Generate the native Android project
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build APK
+        working-directory: apps/mobile/android
+        # `assembleRelease`, not `assembleDebug`, despite the artifact's name.
+        #
+        # A true debug APK expects a Metro server on the same network and shows a
+        # red error screen without one, which is useless for handing to somebody
+        # to try. The release variant bundles the JavaScript into the APK, so it
+        # opens standalone on any phone.
+        #
+        # It is still debug-*signed*: Expo's template points the release signing
+        # config at the checked-in debug keystore. That makes it installable via
+        # sideload and unsuitable for the Play Store, which is exactly right for
+        # a test build. Store uploads need a real keystore — see
+        # docs/08-launch-playbook.md.
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: sharing-apk
+          path: apps/mobile/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 30
